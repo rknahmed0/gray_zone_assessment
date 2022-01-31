@@ -1,0 +1,14 @@
+tqdm
+matplotlib
+torch>=1.5
+numpy>=1.17
+monai
+pandas
+sklearn
+seaborn
+plotly
+GitPython==3.1.7
+click
+fvcore
+einops
+timm
