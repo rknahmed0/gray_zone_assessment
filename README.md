@@ -23,9 +23,9 @@ pip install -e .
 ```
 5. Train model  
 ```bash
-python run_model.py -o <outpath/path> -p <resources/training_configs/config.json> -d <image/data/path> -c <path/csv/file.csv>
+python run_model_rakin.py -o <outpath/path> -p <resources/training_configs/config.json> -d <image/data/path> -c <path/csv/file.csv>
 ```
-For more information on the different flags: `python run_model.py --help`  
+For more information on the different flags: `python run_model_rakin.py --help`. Additional options/flags added to store loss values in a csv (for subsequent plotting of train/val learning curves), and to allow for user input for num_class when running inference, since the csv file which is used for inference (--test) may contain an empty ground truth columns. Updated run_model.py script stored as run_model_rakin.py (if you want previous version, use run_model.py)
   
 ## Configuration file (flag -p or --param-path)  
 The configuration file is a json file containing the main training parameters.  
