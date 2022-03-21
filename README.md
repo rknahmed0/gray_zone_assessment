@@ -25,19 +25,26 @@ pip install -e .
 ```bash
 python run_model_rakin.py -o <outpath/path> -p <resources/training_configs/config.json> -d <image/data/path> -c <path/csv/file.csv>
 ```
-For more information on the different flags: `python run_model_rakin.py --help`. Additional options/flags added to store loss values in a csv (for subsequent plotting of train/val learning curves), and to allow for user input for num_class when running inference, since the csv file which is used for inference (--test) may contain an empty ground truth columns. Updated run_model.py script stored as run_model_rakin.py (if you want previous version, use run_model.py)
+For more information on the different flags: `python run_model_rakin.py --help`. Additional options/flags added to store loss values in a csv (for subsequent plotting of train/val learning curves), and to allow for user input for num_class when running inference, since the csv file which is used for inference (--test) may contain an empty ground truth columns. Updated run_model.py script stored as run_model_rakin.py (if you want previous version, use run_model.py from https://github.com/rknahmed0/gray_zone_assessment/tree/main/gray_zone/old_versions - run_model.py script here references train.py and loss.py so make sure you move all 3 to your gray_zone directory first in your local clone)
+
+For binary classification, process_model_output.py updated to account for determining 'predicted_class'/'predicted_mc_class' and 'soft_prediction'/'soft_mc_prediction' from 1-element lists of pred and mc_pred, using similar functions as used for ordinal classification.
   
 ## Configuration file (flag -p or --param-path)  
 The configuration file is a json file containing the main training parameters.  
 Some json file examples are located in `gray_zone/resources/training_configs/`  
 
-### Required configuration parameters  
+### Required configuration parameters
+Sample config file with all new configs: https://github.com/rknahmed0/gray_zone_assessment/blob/main/gray_zone/resources/training_configs/foc_qwk_LC_classification_all_params.json  
 
 |    Parameter   | Description |  
 | -------- | --- |  
 | architecture |   Architecture id contained in Densenet or Resnet family. Choice between: 'densenet121', 'densenet169', 'densenet201', 'densenet264', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnext50_32x4d', 'resnext101_32x8d', 'wide_resnet50_2', 'wide_resnet101_2'    |  
 | model_type | Choice between "classification", "ordinal", "regression". |  
-| loss |  Loss function id. Choice between 'ce' (Cross entropy), 'mse' (Mean square error), 'l1' (L1), 'bce' (Binary cross entropy), 'coral' (Ordinal loss), 'qwk' (Quadratic weighted kappa), 'foc' (Focal). |  
+| loss |  Loss function id. Choice between 'ce' (Cross entropy), 'mse' (Mean square error), 'l1' (L1), 'bce' (Binary cross entropy), 'coral' (Ordinal loss), 'qwk' (Quadratic weighted kappa), 'foc' (Focal), 'foc_qwk' (Focal adjustment to qwk), 'foc_qwk_LC (Linear combination of focal and qwk with coefficients for each term)'. |  
+| foc_gamma | gamma parameter for foc, foc_qwk, foc_qwk_LC losses (float or None). |  
+| foc_kappa_adjustment | focal adjustment to qwk: either None or 'num' or 'num_denom' for foc_qwk and foc_qwk_LC losses (str or None). |  
+| foc_coeff | coefficient for focal loss term for each ground truth class for foc_qwk_LC loss (list len=3 or None). |  
+| kappa_coeff | coefficient for kappa loss term for each ground truth class for foc_qwk_LC loss (list len=3 or None). |  
 | batch_size | Batch size (int). |  
 | lr | Learning rate (float). |  
 | n_epochs | Number of training epochs (int). |  

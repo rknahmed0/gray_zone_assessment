@@ -4,14 +4,17 @@ import torch
 from gray_zone.models.coral import coral_loss
 import numpy as np
 
-from typing import Optional
+from typing import Optional, Union, Sequence # Union added
+from torch import Tensor # added for 2nd implementation
 import warnings 
 import torch.nn as nn
 import torch.nn.functional as F
+# 8 print commands in total here
 
-##########
-#Focal loss for multi-class classfication - begin
-#Adapted from kornia's implementation
+
+
+#####################################################################################################
+# 1 - adapted from kornia's implementation of focal loss
 
 # One-Hot function
 def one_hot(
@@ -53,7 +56,7 @@ def one_hot(
 
     shape = labels.shape
     one_hot = torch.zeros((shape[0], num_classes) + shape[1:], device=device, dtype=dtype)
-
+    # print(f'one_hot output: \n{one_hot.scatter_(1, labels.unsqueeze(1), 1.0) + eps}') #
     return one_hot.scatter_(1, labels.unsqueeze(1), 1.0) + eps
 
 # Multiclass focal loss function
@@ -61,6 +64,7 @@ def focal_loss(
     input: torch.Tensor,
     target: torch.Tensor,
     alpha: float,
+    # alpha: Union[float, torch.Tensor], # SRA 03/16/22 added
     gamma: float = 2.0,
     reduction: str = 'none',
     eps: Optional[float] = None,
@@ -118,17 +122,20 @@ def focal_loss(
 
     # compute softmax over the classes axis
     input_soft: torch.Tensor = F.softmax(input, dim=1)
+    # print(f'input_soft = \n{input_soft}') #
     log_input_soft: torch.Tensor = F.log_softmax(input, dim=1)
+    # print(f'log_input_soft = \n{log_input_soft}') #
 
     # create the labels one hot tensor
     target_one_hot: torch.Tensor = one_hot(target, num_classes=input.shape[1], device=input.device, dtype=input.dtype)
 
     # compute the actual focal loss
     weight = torch.pow(-input_soft + 1.0, gamma)
-
+    # print(f'weight = \n{weight}') #
     focal = -alpha * weight * log_input_soft
+    # print(f'focal = \n{focal}') #
     loss_tmp = torch.einsum('bc...,bc...->b...', (target_one_hot, focal))
-
+    # print(f'loss_tmp = \n{loss_tmp}') #
     if reduction == 'none':
         loss = loss_tmp
     elif reduction == 'mean':
@@ -137,6 +144,7 @@ def focal_loss(
         loss = torch.sum(loss_tmp)
     else:
         raise NotImplementedError(f"Invalid reduction mode: {reduction}")
+    # print(f'final loss = \n{loss}') #
     return loss
 
 
@@ -181,8 +189,92 @@ class FocalLoss(nn.Module):
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         return focal_loss(input, target, self.alpha, self.gamma, self.reduction, self.eps)
 
-##########
+##################################################################################################################
+# # 2 - (variable) alpha implementation of Focal Loss
+# class FocalLoss(nn.Module):
+#     """ Focal Loss, as described in https://arxiv.org/abs/1708.02002.
+#     It is essentially an enhancement to cross entropy loss and is
+#     useful for classification tasks when there is a large class imbalance.
+#     x is expected to contain raw, unnormalized scores for each class.
+#     y is expected to contain class labels.
+#     Shape:
+#         - x: (batch_size, C) or (batch_size, C, d1, d2, ..., dK), K > 0.
+#         - y: (batch_size,) or (batch_size, d1, d2, ..., dK), K > 0.
+#     """
 
+#     def __init__(self,
+#                  alpha: Optional[Tensor] = None,
+#                  gamma: float = 0.,
+#                  reduction: str = 'mean',
+#                  ignore_index: int = -100):
+#         """Constructor.
+#         Args:
+#             alpha (Tensor, optional): Weights for each class. Defaults to None.
+#             gamma (float, optional): A constant, as described in the paper.
+#                 Defaults to 0.
+#             reduction (str, optional): 'mean', 'sum' or 'none'.
+#                 Defaults to 'mean'.
+#             ignore_index (int, optional): class label to ignore.
+#                 Defaults to -100.
+#         """
+#         if reduction not in ('mean', 'sum', 'none'):
+#             raise ValueError(
+#                 'Reduction must be one of: "mean", "sum", "none".')
+
+#         super().__init__()
+#         self.alpha = alpha
+#         self.gamma = gamma
+#         self.ignore_index = ignore_index
+#         self.reduction = reduction
+
+#         self.nll_loss = nn.NLLLoss(
+#             weight=alpha, reduction='none', ignore_index=ignore_index)
+
+#     def __repr__(self):
+#         arg_keys = ['alpha', 'gamma', 'ignore_index', 'reduction']
+#         arg_vals = [self.__dict__[k] for k in arg_keys]
+#         arg_strs = [f'{k}={v}' for k, v in zip(arg_keys, arg_vals)]
+#         arg_str = ', '.join(arg_strs)
+#         return f'{type(self).__name__}({arg_str})'
+
+#     def forward(self, x: Tensor, y: Tensor) -> Tensor:
+#         if x.ndim > 2:
+#             # (N, C, d1, d2, ..., dK) --> (N * d1 * ... * dK, C)
+#             c = x.shape[1]
+#             x = x.permute(0, *range(2, x.ndim), 1).reshape(-1, c)
+#             # (N, d1, d2, ..., dK) --> (N * d1 * ... * dK,)
+#             y = y.view(-1)
+
+#         unignored_mask = y != self.ignore_index
+#         y = y[unignored_mask]
+#         if len(y) == 0:
+#             return 0.
+#         x = x[unignored_mask]
+
+#         # compute weighted cross entropy term: -alpha * log(pt)
+#         # (alpha is already part of self.nll_loss)
+#         log_p = F.log_softmax(x, dim=-1)
+#         ce = self.nll_loss(log_p, y)
+
+#         # get true class column from each row
+#         all_rows = torch.arange(len(x))
+#         log_pt = log_p[all_rows, y]
+
+#         # compute focal term: (1 - pt)^gamma
+#         pt = log_pt.exp()
+#         focal_term = (1 - pt)**self.gamma
+
+#         # the full loss: -alpha * ((1 - pt)^gamma) * log(pt)
+#         loss = focal_term * ce
+
+#         if self.reduction == 'mean':
+#             loss = loss.mean()
+#         elif self.reduction == 'sum':
+#             loss = loss.sum()
+
+#         return loss
+
+##################################################################################################################
 
 class KappaLoss():
     def __init__(self, n_classes):
@@ -206,7 +298,32 @@ class KappaLoss():
         E = torch.matmul(ohe_y.sum(dim=0).view(-1, 1), output.sum(dim=0).view(1, -1)) / O.sum()
 
         return (W * O).sum() / ((W * E).sum() + 1e-5)
+####################################################################################################################
 
+class FocalKappaLoss():
+    def __init__(self, n_classes):
+        self.n_classes = n_classes
+
+    def __call__(self, output, y):
+        ohe_y = torch.zeros_like(output)
+        batch_size = y.size(0)
+        for i in range(batch_size):
+            ohe_y[i, y[i].long()] = 1.
+
+        output = torch.nn.Softmax(dim=1)(output)
+        W = np.zeros((self.n_classes, self.n_classes))
+        for i in range(self.n_classes):
+            for j in range(self.n_classes):
+                W[i, j] = abs(i - j) ** 2
+
+        W = torch.from_numpy(W.astype(np.float32)).to(y.device)
+
+        O = torch.matmul(ohe_y.t(), output)
+        E = torch.matmul(ohe_y.sum(dim=0).view(-1, 1), output.sum(dim=0).view(1, -1)) / O.sum()
+
+        return (W * O).sum() / ((W * E).sum() + 1e-5)
+
+####################################################################################################################
 
 def get_loss(loss_id: str,
              n_class: int,
@@ -230,8 +347,17 @@ def get_loss(loss_id: str,
     elif loss_id == 'bce':
         loss = torch.nn.BCELoss()
     elif loss_id == 'foc':
-        kwargs = {"alpha": 0.25, "gamma": 2.0, "reduction": 'mean'}
+        # kwargs = {"alpha": 0.25, "gamma": 2.0, "reduction": 'mean'} # 1 - 91
+        # kwargs = {"alpha": 0.25, "gamma": 2.0, "reduction": 'sum'} # 2 - 97 - SRA 03/14/2022 changed 1 to reduction:sum
+        # kwargs = {"alpha": 1, "gamma": 2.0, "reduction": 'mean'} # 3 - 98 - SRA 03/14/2022 changed 1 to alpha:1
+        # kwargs = {"alpha": weights, "gamma": 2.0, "reduction": 'mean'} # 4 - 99 - SRA 03/14/2022 changed 1 to alpha=weights and used the 2nd (AdeelH) implementation of focal loss; set is_weighted_loss=True
+        kwargs = {"alpha": 1, "gamma": 1.5, "reduction": 'mean'} # 3 - 121 - SRA 03/14/2022 changed 1 to gamma:1.5
+        kwargs = {"alpha": 1, "gamma": 3, "reduction": 'mean'} # 3 - 122 - SRA 03/14/2022 changed 1 to gamma:1.5
+        kwargs = {"alpha": 1, "gamma": 4, "reduction": 'mean'} # 3 - 123 - SRA 03/14/2022 changed 1 to gamma:1.5
+        print(f'focal loss params: \n{kwargs}')
         loss = FocalLoss(**kwargs)
+    elif loss_id == 'foc_qwk':
+        kwargs = {"alpha": weights, "gamma": 2.0, "reduction": 'mean'}
     else:
         raise ValueError("Invalid loss function id. Choices: 'ce', 'mse', 'l1', 'bce', 'qwk', 'coral', 'foc'")
 

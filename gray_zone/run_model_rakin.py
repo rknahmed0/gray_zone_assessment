@@ -8,9 +8,9 @@ import torch
 from gray_zone.loader import loader, get_unbalanced_loader
 from gray_zone.utils import load_transforms
 from gray_zone.models.model import get_model
-from gray_zone.train_rakin import train # changed source of import for train i.e. instead of importing from gray_zone.train import from gray_zone.train_rakin
+from gray_zone.train_rakin import train # 02/2022 changed source of import for train i.e. instead of importing from gray_zone.train import from gray_zone.train_rakin
 from gray_zone.evaluate import evaluate_model
-from gray_zone.loss import get_loss
+from gray_zone.loss_rakin import get_loss # 03/13/2022 changed source of import for get_loss i.e. instead of importing from gray_zone.loss import from gray_zone.loss_rakin
 from gray_zone.records import get_job_record, save_job_record
 from gray_zone.process_model_output import process_output
 
@@ -87,8 +87,10 @@ def _run_model(output_path: str,
 
     optimizer = torch.optim.Adam(model.parameters(), param_dict['lr'])
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
-    loss_function = get_loss(param_dict['loss'], param_dict['n_class'], param_dict['is_weighted_loss'],
-                             weights, param_dict['device'])
+    loss_function = get_loss(param_dict['loss'], param_dict['n_class'], param_dict['foc_gamma'], param_dict['foc_kappa_adjustment'],
+                            param_dict['foc_coeff'], param_dict['kappa_coeff'], param_dict['is_weighted_loss'], weights, param_dict['device']) 
+                            # 4 additional parameters added: foc_gamma (used in foc, foc_qwk, foc_qwk_LC losses),
+                            # foc_kappa_adjustment (used in foc_qwk and foc_qwk_LC losses), foc_coeff, kappa_coeff (used in foc_qwk_LC loss)
 
     if not test:
         train(model=model,

@@ -6,7 +6,7 @@ from monai.transforms import Activations
 
 from gray_zone.models import dropout_resnet, resnest, vit, vgg
 from gray_zone.models.coral import CoralLayer
-
+# 1 print command in this document
 
 def get_model(architecture: str,
               model_type: str,
@@ -77,6 +77,7 @@ def get_model_type_params(model_type: str,
         if n_class > 2:
             act = torch.nn.Softmax(dim=1)
             out_channels = n_class
+            # print(f'act returned by get_model_type_params = \n{act}') #
         # Binary model
         else:
             act = Activations(sigmoid=True)

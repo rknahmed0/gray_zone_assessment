@@ -42,7 +42,11 @@ def process_output(folder_path, is_ordinal, pred_file):
         if is_ordinal:
             df['predicted_mc_class'] = proba_to_label(np.array(mc_pred).mean(0))
             df['soft_mc_prediction'] = get_severity_score_ordinal(np.array(mc_pred).mean(0))
-
+        ##############################################################################################
+        elif n_class <= 2:  # SRA added 03/21/2022
+            df['predicted_mc_class'] = proba_to_label(np.array(mc_pred).mean(0))
+            df['soft_mc_prediction'] = get_severity_score_ordinal(np.array(mc_pred).mean(0))
+        ##############################################################################################
         else:
             df['predicted_mc_class'] = np.array(mc_pred).mean(0).argmax(1)
             df['soft_mc_prediction'] = get_severity_score_classification(np.array(mc_pred).mean(0))
@@ -51,6 +55,12 @@ def process_output(folder_path, is_ordinal, pred_file):
         print("Ordinal")
         df['predicted_class'] = proba_to_label(pred)
         df['soft_prediction'] = get_severity_score_ordinal(pred)
+    ##############################################################################################
+    elif n_class <= 2:  # SRA added 03/21/2022
+        print("Binary Classification")
+        df['predicted_class'] = proba_to_label(pred)
+        df['soft_prediction'] = get_severity_score_ordinal(pred)
+    ##############################################################################################
     else:
         print("Classification")
         df['predicted_class'] = pred.argmax(1)
