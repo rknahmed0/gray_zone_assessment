@@ -123,7 +123,7 @@ def _run_model(output_path: str,
                                 image_colname=image_colname,
                                 suffix=suffix)
             is_ordinal = param_dict['model_type'] == 'ordinal'
-            process_output(output_path, is_ordinal, "predictions" + suffix + ".csv")
+            process_output(output_path, is_ordinal, "predictions" + suffix + ".csv", n_class=param_dict['n_class'])
 
 ########################################################################################################
 # Class to ensure that --test flag is always accompanied by the --num-class flag i.e. mutually inclusive

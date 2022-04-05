@@ -25,7 +25,7 @@ def proba_to_label(probas):
     return predicted_labels
 
 
-def process_output(folder_path, is_ordinal, pred_file):
+def process_output(folder_path, is_ordinal, pred_file, n_class):
     df = pd.read_csv(os.path.join(folder_path, pred_file))
     # Remove unnamed columns
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
