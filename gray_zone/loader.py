@@ -137,7 +137,7 @@ def split_dataset(output_path: str,
         df = pd.read_csv(metadata_path)
         # If images are not already split into val/train/test, split by patient
         if split_colname not in df:
-            patient_lst = list(set(df['patient'].tolist()))
+            patient_lst = list(set(df[patient_colname].tolist())) # changed from df['patient'] to df[patient_colname] on 07/03/2022
             train_patients, remain_patients = train_test_split(patient_lst, train_size=train_frac, random_state=seed)
             test_patients, val_patients = train_test_split(remain_patients, train_size=test_frac / (1 - train_frac),
                                                            random_state=seed)
