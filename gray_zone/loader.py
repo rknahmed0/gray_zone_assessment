@@ -8,7 +8,46 @@ import matplotlib.image as mpimg
 from monai.transforms import Compose
 from sklearn.model_selection import train_test_split
 
+# SRA commented out 07/21/2022
+# class Dataset(torch.utils.data.Dataset):
+#     def __init__(self,
+#                  df: pd.DataFrame,
+#                  data_path: str,
+#                  transforms: Compose,
+#                  label_colname: str = 'label',
+#                  image_colname: str = 'image'):
+#         self.df = df
+#         self.data_path = data_path
+#         self.transforms = transforms
+#         self.label_name = label_colname
+#         self.image_name = image_colname
 
+#     def __len__(self):
+#         return len(self.df)
+
+#     def __getitem__(self,
+#                     index: int):
+#         img_path = os.path.join(self.data_path, self.df[self.image_name].iloc[index])
+#         if img_path.endswith('.npy'):
+#             img = np.load(img_path).astype('float32')
+#         else:
+#             img = mpimg.imread(img_path).astype('float32')
+#             # Use provided bounding box if available. The bounding box coordinates should be stored in columns named
+#             # y1, y2, x1, x2.
+#             if 'y1' in self.df:
+#                 idx_data = self.df.iloc[index]
+#                 img = img[int(idx_data['y1']): int(idx_data['y2']), int(idx_data['x1']): int(idx_data['x2']), :]
+#                 # Remove center crop if the bounding box is provided
+#                 self.transforms = Compose([tr for tr in list(self.transforms.transforms)
+#                                            if 'CenterSpatialCrop' not in str(tr)])
+
+#         gt = self.df[self.label_name].iloc[index]
+#         # Image, label, image filename
+#         return self.transforms(img), \
+#                torch.as_tensor(int(gt)) if not math.isnan(gt) else gt, \
+#                self.df[self.image_name].iloc[index]
+
+# SRA added try except logic in img reader to account for a few images that are having trouble being read 07/21/2022; comment out if using original
 class Dataset(torch.utils.data.Dataset):
     def __init__(self,
                  df: pd.DataFrame,
@@ -31,7 +70,14 @@ class Dataset(torch.utils.data.Dataset):
         if img_path.endswith('.npy'):
             img = np.load(img_path).astype('float32')
         else:
-            img = mpimg.imread(img_path).astype('float32')
+            try:
+                img = mpimg.imread(img_path).astype('float32')
+            except:
+                from PIL import Image, ImageFile
+                print(img_path)
+                ImageFile.LOAD_TRUNCATED_IMAGES = True
+                img = np.array(Image.open(img_path)).astype('float32')
+            
             # Use provided bounding box if available. The bounding box coordinates should be stored in columns named
             # y1, y2, x1, x2.
             if 'y1' in self.df:

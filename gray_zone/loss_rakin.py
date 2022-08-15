@@ -51,7 +51,7 @@ def one_hot(
 
     shape = labels.shape
     one_hot = torch.zeros((shape[0], num_classes) + shape[1:], device=device, dtype=dtype)
-    print(f'one_hot output: \n{one_hot.scatter_(1, labels.unsqueeze(1), 1.0) + eps}') #
+    # print(f'one_hot output: \n{one_hot.scatter_(1, labels.unsqueeze(1), 1.0) + eps}') #
     return one_hot.scatter_(1, labels.unsqueeze(1), 1.0) + eps
 #     return one_hot.scatter_(1, labels.unsqueeze(1), 1.0) # removed eps 03/17
 
@@ -118,28 +118,28 @@ def focal_loss(
 
     # compute softmax over the classes axis
     input_soft: torch.Tensor = F.softmax(input, dim=1)
-    print(f'input_soft = \n{input_soft}') #
+    # print(f'input_soft = \n{input_soft}') #
     log_input_soft: torch.Tensor = F.log_softmax(input, dim=1)
-    print(f'log_input_soft = \n{log_input_soft}') #
+    # print(f'log_input_soft = \n{log_input_soft}') #
 
     # create the labels one hot tensor
     target_one_hot: torch.Tensor = one_hot(target, num_classes=input.shape[1], device=input.device, dtype=input.dtype)
 
     # compute the actual focal loss
     weight = torch.pow(-input_soft + 1.0, gamma)
-    print(f'weight = torch.pow(-input_soft + 1.0, gamma)\n{weight}') #
+    # print(f'weight = torch.pow(-input_soft + 1.0, gamma)\n{weight}') #
     focal = -1 * weight * log_input_soft
     if not(isinstance(alpha, torch.Tensor)):
         if len([alpha]) == 1:
             alpha = np.array([alpha] * input.shape[1])
             alpha = torch.from_numpy(alpha.astype(np.float32)).to(target.device)        
     adjusted_alpha = torch.matmul(alpha, target_one_hot.t())
-    print(f'adjusted_alpha = \n{adjusted_alpha}')
-    print(f'focal = \n{focal}') #
+    # print(f'adjusted_alpha = \n{adjusted_alpha}')
+    # print(f'focal = \n{focal}') #
     loss_tmp = torch.einsum('bc...,bc...->b...', (target_one_hot, focal))
-    print(f'loss_tmp = \n{loss_tmp}')
+    # print(f'loss_tmp = \n{loss_tmp}')
     loss_tmp = adjusted_alpha * loss_tmp
-    print(f'loss_tmp = \n{loss_tmp}')
+    # print(f'loss_tmp = \n{loss_tmp}')
     # print(f'loss_tmp = \n{loss_tmp}') #
     if reduction == 'none':
         loss = loss_tmp
@@ -149,7 +149,7 @@ def focal_loss(
         loss = torch.sum(loss_tmp)
     else:
         raise NotImplementedError(f"Invalid reduction mode: {reduction}")
-    print(f'final loss = \n{loss}') #
+    # print(f'final loss = \n{loss}') #
     return loss
 
 
