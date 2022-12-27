@@ -13,7 +13,7 @@ from sklearn.preprocessing import label_binarize
 from gray_zone.loader import Dataset
 from gray_zone.utils import get_label, get_validation_metric, modify_label_outputs_for_model_type
 from gray_zone.models.coral import label_to_levels, proba_to_label
-# 6 added print commands in train.py
+# 8 added print commands in train.py
 
 def train(model: [torch.Tensor],
           act: Activations,
@@ -54,7 +54,7 @@ def train(model: [torch.Tensor],
             # print(f'outputs before soft max: \n{outputs}') #
             # print(f'act inside train.py: \n{act}')
             outputs, labels = modify_label_outputs_for_model_type(model_type, outputs, labels, act, n_class)
-            # print(f'outputs shape: \n{outputs.shape[1]}') #
+            # print(f'outputs shape: \n{outputs.shape}') #
             # print(f'outputs after soft max: \n{outputs}') #
             # print(f'labels shape: \n{labels.shape}') #
             # print(f'labels: \n{labels}') #
@@ -86,6 +86,8 @@ def train(model: [torch.Tensor],
                                                                           val=True)
 
                 val_loss += loss_function(outputs, val_labels)
+                # print(f'outputs shape: \n{outputs.shape}') #
+                # print(f'outputs after soft max: \n{outputs}') #
                 y_pred = torch.cat([y_pred, outputs], dim=0)
                 y = torch.cat([y, val_labels], dim=0)
                 step += 1

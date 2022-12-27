@@ -42,6 +42,8 @@ def evaluate_model(model: torch.nn.Module,
                 y_pred.append(pred_prob[i])
                 images.append(test_data[2][i])
 
+            # print(images) # SRA added on 11-28-2022
+
             # Store multiple predictions if is_mc is activated
             if is_mc:
                 mc_pred = {}

@@ -8,6 +8,9 @@ git clone https://github.com/rknahmed0/gray_zone_assessment.git
 ```
 2. Build docker image  
 ```bash
+cd gray_zone_assessment/
+```
+```bash
 docker build -t gray_zone docker/
 ```
 3. Run docker container  

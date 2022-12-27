@@ -76,7 +76,7 @@ class Dataset(torch.utils.data.Dataset):
                 from PIL import Image, ImageFile
                 print(img_path)
                 ImageFile.LOAD_TRUNCATED_IMAGES = True
-                img = np.array(Image.open(img_path)).astype('float32')
+                img = np.array(Image.open(img_path)).astype('float32')               
             
             # Use provided bounding box if available. The bounding box coordinates should be stored in columns named
             # y1, y2, x1, x2.
@@ -86,6 +86,15 @@ class Dataset(torch.utils.data.Dataset):
                 # Remove center crop if the bounding box is provided
                 self.transforms = Compose([tr for tr in list(self.transforms.transforms)
                                            if 'CenterSpatialCrop' not in str(tr)])
+        
+        # comment out below # SRA 11-28-2022
+        # if self.transforms(img).shape[0]!=3:
+        #     print('this is likely an error image that needs to be removed')
+        #     print(self.transforms(img).shape[0])
+        #     print(img_path)
+
+        # print(self.df[self.image_name].iloc[index])
+        ###############################################
 
         gt = self.df[self.label_name].iloc[index]
         # Image, label, image filename
@@ -118,8 +127,8 @@ def loader(data_path: str,
     """
     # Load metadata and create val/train/test split if not already done
     split_df = split_dataset(output_path, train_frac=train_frac, test_frac=test_frac,
-                             seed=seed, metadata_path=metadata_path, split_colname=split_colname,
-                             patient_colname=patient_colname)
+                             seed=seed, metadata_path=metadata_path, split_colname=split_colname, image_colname=image_colname,
+                             patient_colname=patient_colname) # added image_colname on 08/21/2022, remove for DC
     train_loader, val_loader, test_loader = None, None, None
     df_train = split_df[split_df[split_colname] == "train"]
     if len(df_train):
@@ -171,6 +180,7 @@ def split_dataset(output_path: str,
                   test_frac: float,
                   seed: int,
                   split_colname: str,
+                  image_colname: str, # added on 08/21/2022 to account for image quality, uncomment for DC
                   patient_colname: str):
     """Load csv file containing metadata (image filenames, labels, patient ids, and val/train/test split)"""
     split_df_path = os.path.join(output_path, "split_df.csv")
@@ -183,7 +193,9 @@ def split_dataset(output_path: str,
         df = pd.read_csv(metadata_path)
         # If images are not already split into val/train/test, split by patient
         if split_colname not in df:
-            patient_lst = list(set(df[patient_colname].tolist())) # changed from df['patient'] to df[patient_colname] on 07/03/2022
+            print('generating splits based on metrics provided')
+            # patient_lst = list(set(df[image_colname].tolist())) # changed from df[patient_colname] to df['image_colname'] on 08/21/2022 for image_quality, remove for DC
+            patient_lst = list(set(df[patient_colname].tolist())) # changed from df['patient'] to df[patient_colname] on 07/03/2022, keep for DC
             train_patients, remain_patients = train_test_split(patient_lst, train_size=train_frac, random_state=seed)
             test_patients, val_patients = train_test_split(remain_patients, train_size=test_frac / (1 - train_frac),
                                                            random_state=seed)
@@ -192,6 +204,10 @@ def split_dataset(output_path: str,
             df.loc[df[patient_colname].isin(train_patients), split_colname] = 'train'
             df.loc[df[patient_colname].isin(val_patients), split_colname] = 'val'
             df.loc[df[patient_colname].isin(test_patients), split_colname] = 'test'
+
+            # df.loc[df[image_colname].isin(train_patients), split_colname] = 'train' # added on 08/21/2022 for image_quality, comment for DC (and uncomment above) without known splits
+            # df.loc[df[image_colname].isin(val_patients), split_colname] = 'val'
+            # df.loc[df[image_colname].isin(test_patients), split_colname] = 'test'
 
         df.to_csv(split_df_path)
 

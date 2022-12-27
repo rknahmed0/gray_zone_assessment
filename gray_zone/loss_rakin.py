@@ -292,6 +292,7 @@ class KappaLoss():
             ohe_y[i, y[i].long()] = 1.
 
         output = torch.nn.Softmax(dim=1)(output)
+        # print(f'outputs after soft max inside kappa loss: \n{output}') # added 09-24-2022 to test WK with 2-class
         W = np.zeros((self.n_classes, self.n_classes))
         for i in range(self.n_classes):
             for j in range(self.n_classes):
@@ -359,7 +360,7 @@ class FocalKappaLoss():
         return final_loss
 
 #############################################################################################################################
-# 4. focal kappa loss LC, allowing for kappa_coeff adjustment to either num or num_denom (verified correct on 03/19 notebook)
+# 5. focal kappa loss LC, allowing for kappa_coeff adjustment to either num or num_denom (verified correct on 03/19 notebook)
 
 class FocalKappaLossLC():
     def __init__(self, n_classes, alpha: Union[float, list, torch.Tensor] = 1.0, gamma: float = 2.0, reduction: str = 'none', foc_coeff: list = [0, 0, 0], kappa_coeff: list = [1, 1, 1], kappa_adjustment: str = 'num'):
@@ -448,6 +449,29 @@ class FocalKappaLossLC():
         return final_loss
 
 #######################################################################################################################################################
+# 6. multiclass MSE loss implementation based on sum(W*O)/sum(W*E)
+
+class multiclassMSELoss():
+    def __init__(self, n_classes):
+        self.n_classes = n_classes
+
+    def __call__(self, output, y):
+        ohe_y = torch.zeros_like(output)
+        batch_size = y.size(0)
+        for i in range(batch_size):
+            ohe_y[i, y[i].long()] = 1.
+
+        loss_internal = torch.nn.MSELoss()
+        
+        # print(f'inside mcmse outputs shape: \n{output.shape}') #
+        # print(f'inside mcmse outputs after soft max: \n{output}') #
+        # print(f'inside mcmse labels shape: \n{ohe_y.shape}') #
+        # print(f'inside mcmse labels: \n{ohe_y}') #
+        # print(f'mcmse loss: {loss_internal(output, ohe_y)}')
+        
+        return loss_internal(output, ohe_y)
+
+#####################################################################################################################################
 # get_loss function, used in run_model.py
 
 def get_loss(loss_id: str,
@@ -469,6 +493,8 @@ def get_loss(loss_id: str,
         loss = torch.nn.CrossEntropyLoss(weight=weights)
     elif loss_id == 'mse':
         loss = torch.nn.MSELoss()
+    elif loss_id == 'mcmse':
+        loss = multiclassMSELoss(n_classes=n_class)
     elif loss_id == 'qwk':
         loss = KappaLoss(n_classes=n_class)
     elif loss_id == 'l1':

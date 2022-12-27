@@ -78,6 +78,11 @@ def get_model_type_params(model_type: str,
             act = torch.nn.Softmax(dim=1)
             out_channels = n_class
             # print(f'act returned by get_model_type_params = \n{act}') #
+        ##############################################################################################        
+        # elif n_class == 2: # SRA added 09-24-2022 to allow weighted kappa loss with 2-class
+        #     act = torch.nn.Softmax(dim=1)
+        #     out_channels = n_class
+        ##############################################################################################
         # Binary model
         else:
             act = Activations(sigmoid=True)

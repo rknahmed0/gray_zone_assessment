@@ -87,12 +87,17 @@ def _run_model(output_path: str,
 
     optimizer = torch.optim.Adam(model.parameters(), param_dict['lr'])
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
-    loss_function = get_loss(param_dict['loss'], param_dict['n_class'], param_dict['foc_gamma'], param_dict['foc_kappa_adjustment'],
-                            param_dict['foc_coeff'], param_dict['kappa_coeff'], param_dict['is_weighted_loss'], weights, param_dict['device']) 
-                            # 4 additional parameters added: foc_gamma (used in foc, foc_qwk, foc_qwk_LC losses),
-                            # foc_kappa_adjustment (used in foc_qwk and foc_qwk_LC losses), foc_coeff, kappa_coeff (used in foc_qwk_LC loss)
+    # loss_function = get_loss(param_dict['loss'], param_dict['n_class'], param_dict['foc_gamma'], param_dict['foc_kappa_adjustment'],
+    #                         param_dict['foc_coeff'], param_dict['kappa_coeff'], param_dict['is_weighted_loss'], weights, param_dict['device']) 
+    #                         # 4 additional parameters added: foc_gamma (used in foc, foc_qwk, foc_qwk_LC losses),
+    #                         # foc_kappa_adjustment (used in foc_qwk and foc_qwk_LC losses), foc_coeff, kappa_coeff (used in foc_qwk_LC loss)
 
     if not test:
+        # only need to assign loss function during training, so put loss_function inside if not test, done on 2022-10-25
+        loss_function = get_loss(param_dict['loss'], param_dict['n_class'], param_dict['foc_gamma'], param_dict['foc_kappa_adjustment'],
+                                param_dict['foc_coeff'], param_dict['kappa_coeff'], param_dict['is_weighted_loss'], weights, param_dict['device']) 
+                                # 4 additional parameters added: foc_gamma (used in foc, foc_qwk, foc_qwk_LC losses),
+                                # foc_kappa_adjustment (used in foc_qwk and foc_qwk_LC losses), foc_coeff, kappa_coeff (used in foc_qwk_LC loss)
         train(model=model,
               act=act,
               train_loader=train_loader,

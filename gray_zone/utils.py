@@ -128,6 +128,7 @@ def get_validation_metric(val_metric: str,
                                                 torch.tensor(label_binarize(y_true, classes=list(range(n_class)))[:,
                                                              -1]))) / 2
             else:
+                # print('Entered the binary (1) version of custom_cervix')
                 metric_value = compute_roc_auc(torch.tensor(y_pred), torch.tensor(y_true))
 
     else:
